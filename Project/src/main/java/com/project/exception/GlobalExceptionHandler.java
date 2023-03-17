@@ -11,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class GlobalExceptionHandler {
 	
-	@ExceptionHandler(CustomException.class)
+	@ExceptionHandler(CustomException.class) //Custom 에러는 런타임 에러를 가지고 있으니 런타임 에러 발생시 이곳으로온다.
 	protected ResponseEntity<ErrorResponse> handleCustomException(final CustomException e) {
 		log.error("handleCustomException: {}", e.getErrorCode());
 		return ResponseEntity.status(e.getErrorCode().getStatus().value()).body(new ErrorResponse(e.getErrorCode()));
