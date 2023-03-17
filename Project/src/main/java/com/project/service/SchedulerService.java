@@ -71,7 +71,7 @@ public class SchedulerService { // 해당 쇼핑몰은 시간이 지나면 공�
 								,BuyChk_Product.getP_sell()
 								,BuyChk_Product.getP_price());
 					}
-					Product_Buyer_List.clear();
+					Product_Buyer_List.clear(); // 위에서 List의 값들이 저장되어 있기 때문에 겹치지 않게, 배열을 비워버린다.
 				}
 			}
 		}

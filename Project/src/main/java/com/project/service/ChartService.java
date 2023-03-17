@@ -19,7 +19,9 @@ public class ChartService {
 	private final ChartMapper chartMapper;
 
 	public Map<String, Object> AllChartList(String memberEmail, String Day, String Month) {
+		//여러 다른 객체들을 한번에 View로 보낼수 있어야 하기 때문에 Map에 담아준다.
 		Map<String, Object> chartMap= new HashMap<>();
+		//1주일간 판매된 제품의 숫자
 		List<Chart> Week = chartMapper.OneWeekChart(memberEmail, Day);
 		List<Map<String, Object>> NowAllSell = chartMapper.NowAllSell(memberEmail);
 		List<Chart> WeekSell = chartMapper.OneWeekSellPrice(memberEmail, Day);
