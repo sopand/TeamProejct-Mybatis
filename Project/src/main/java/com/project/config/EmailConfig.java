@@ -13,8 +13,8 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 @PropertySource("classpath:application.yml") // Property의 값을 가져오기 위한 것 Configuration과 함께 사용된다.
 public class EmailConfig {
 
-    @Value("${spring.mail.username}") // application.yml에서 설정해놓은 값을 불러온다 
-    private String id;
+    @Value("${spring.mail.username}") // 설정에 필요한 상수값으로 application.yml에 설정해놓은 값들을 불러온다.
+    private String id;				  // 유지보수시 조금 더 찾기 편하고 수정을 한곳에서 할 수 있어 좋을거 같아 해봤음.
     @Value("${spring.mail.password}")
     private String password;
     @Value("${spring.mail.host}")

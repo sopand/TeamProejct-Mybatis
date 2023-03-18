@@ -38,7 +38,7 @@ public class CustomAuthFailureHandler extends SimpleUrlAuthenticationFailureHand
 		
 		//String 객체를 UTF로 인코딩처리 ( 한글 깨짐문제를 방지하기 위함 )
 		errorMessage = URLEncoder.encode(errorMessage, "UTF-8");
-		//실패시 이동하는 URL로 이동하게 됩니다. error에대한 정보를 가진체로 이동!
+		//실패시 URL로 이동하게 됩니다. error에대한 정보를 가진체로 이동!
 		setDefaultFailureUrl("/members?error=true&exception=" + errorMessage);
 		super.onAuthenticationFailure(request, response, exception);
 	}

@@ -30,36 +30,36 @@ import com.project.model.SetEnum;
 
 import lombok.RequiredArgsConstructor;
 
-@Service
+@Service 
 @RequiredArgsConstructor
 public class ProductService {
 
-	private final ProductMapper productMapper;
-	private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-	@Value("${file.Upimg}")
+	private final ProductMapper productMapper; //Product의 DB처리를 해주는 객체,
+	private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"); // 자주 사용되는 날짜 형식을  상수로 설정해놓고 불러 사용하기위함.
+	@Value("${file.Upimg}") // application.yml에 등록해놓은 파일이 저장되는 폴더에대한 위치 
 	private String path;
 
 	@Transactional // 트랜잭션 처리로 하위에 INSERT들이 진행도중 오류가 생긴다면 RollBack이 된다 (에외의 종류에 따라서 안될수도 있음)
 	public void createProduct(Product productRequest) throws Exception {
-		productMapper.AddProduct(productRequest);
-		createDiscount(productRequest, SetEnum.ADD.name());
-		createImg(productRequest.getP_img(), productRequest.getP_id(), SetEnum.p_img.name());
-		createImg(productRequest.getP_contentimg(), productRequest.getP_id(), SetEnum.p_contentimg.name());
-		createSqlEvent(productRequest, SetEnum.ADD.name());
+		productMapper.AddProduct(productRequest);  // 컨트롤러로부터 넘겨받은 request데이터를 기반으로 제품에 대한 정보를 DB에 저장,
+		createDiscount(productRequest, SetEnum.ADD.getType()); // 제품에 해당하는 Discount(할인율)DB 정보를 저장
+		createImg(productRequest.getP_img(), productRequest.getP_id(), SetEnum.p_img.getType());// 제품의 상세 이미지를 저장시켜주는 로직
+		createImg(productRequest.getP_contentimg(), productRequest.getP_id(), SetEnum.p_contentimg.getType()); // 제품의 설명에 관련된 이미지를 저장해주는 로직
+		createSqlEvent(productRequest, SetEnum.ADD.getType()); // 해당 쇼핑몰은 시간에 맞춰 공고의 시작, 종료가 이뤄지기 때문에 그 시작시간,종료시간에 맞춰 DB가 변할수 있게 SQL의 이벤트 스케쥴러를 이용하는 로직.
 	}
 
 	@Transactional
 	public void modifyProduct(Product productRequest) throws Exception {
-		productMapper.UpdateProduct(productRequest);
-		createDiscount(productRequest, SetEnum.UPDATE.name());
-		createSqlEvent(productRequest, SetEnum.UPDATE.name());
-		modifyImg(productRequest.getP_img(), productRequest.getP_id(), SetEnum.p_img.name());
-		modifyImg(productRequest.getP_contentimg(), productRequest.getP_id(), SetEnum.p_contentimg.name());
+		productMapper.UpdateProduct(productRequest); // 넘겨받은 request정보를 기반으로 DB의 기존 정보를 수정하는 로직
+		createDiscount(productRequest, SetEnum.UPDATE.getType()); // Discount를 수정해주는 로직
+		createSqlEvent(productRequest, SetEnum.UPDATE.getType()); // SQL의정보가 바뀌었는지 확인하고 삭제 or 유지 or 생성진행
+		modifyImg(productRequest.getP_img(), productRequest.getP_id(), SetEnum.p_img.getType()); // 이미지들의 변동에 따라 수정을 진행해준다.
+		modifyImg(productRequest.getP_contentimg(), productRequest.getP_id(), SetEnum.p_contentimg.getType());
 	}
 
 	@Transactional // 할인율 생성 ,수정
 	public void createDiscount(Product productRequest, String Type) {
-		if (Type.equals(SetEnum.UPDATE.name())) {
+		if (Type.equals(SetEnum.UPDATE.getType())) {
 			productMapper.DeleteDiscount(productRequest.getP_id());
 		}
 		for (int i = 0; i < productRequest.getP_discount_count().size(); i++) {
@@ -127,7 +127,7 @@ public class ProductService {
 
 	public void createSqlEvent(Product productRequest, String type) {
 		String value = "";
-		if (type.equals(SetEnum.UPDATE.name())) {
+		if (type.equals(SetEnum.UPDATE.getType())) {
 			value = "DROP EVENT " + productRequest.getP_id() + "_start";
 			productMapper.CreateNewEvent(value);
 			value = "DROP EVENT " + productRequest.getP_id() + "_end";
@@ -321,12 +321,12 @@ public class ProductService {
 		return null;
 	}
 
-	public List<Option> findAllOptions(int p_id) {
+	public List<Option> findAllOptions(int p_id) {  //모든 옵션을 찾아오는 로직, 
 		return productMapper.Option_List(p_id);
 	}
 
-	public void modifyQuantity(int[] opt_id, int[] opt_quantity) {
-		for (int i = 0; i < opt_id.length; i++) {
+	public void modifyQuantity(int[] opt_id, int[] opt_quantity) { // SellerMypage의 재고확인창에서 재고를 수정할 경우 사용되는 로직
+		for (int i = 0; i < opt_id.length; i++) { // 넘겨받은 opt_id의 수만큼 반복을 진행하고, 해당 고유번호의 DB를 수정시켜준다.
 			Option modifyOption = Option.builder().opt_id(opt_id[i]).opt_quantity(opt_quantity[i]).build();
 			productMapper.modifyQuantity(modifyOption);
 		}

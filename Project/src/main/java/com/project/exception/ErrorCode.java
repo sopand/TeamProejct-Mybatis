@@ -7,7 +7,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum ErrorCode { // 각각의 에러코드에 대한 상수값들을 저장해놓은 Enum클래스입니다.
+public enum ErrorCode { // 전체적인 예외 관리를 쉽게하기 위해 정해놓은 에러코드를 저장하는 Enum 클래스
 	// 400 BAD_REQUEST: 잘못된 요청
 	BAD_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
 	
@@ -23,9 +23,9 @@ public enum ErrorCode { // 각각의 에러코드에 대한 상수값들을 저�
 
 	;
 	
-	// Enum 각각의 값에서 1번쨰에 해당하는 HttpStatus가이곳에 할당.
+	// 예외에 대한 상태코드(Status)와 이름(Error)을 처리하는 데 사용,
 	private final HttpStatus status;
-	// Enum 각각의 값에서 2번째인 String 객체들이 이곳에 할당.
+	// 예외에 대한 응답 메시지를 처리하는데 사용하는 멤버
 	private final String message;
 
 }
