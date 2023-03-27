@@ -110,6 +110,10 @@
 	<select id="FindAddr" parameterType="String" resultType="String">
 		select m_address from member where m_email = #{m_email}
 	</select>
+	
+	<select id="FindType" parameterType="String" resultType="String">
+		SELECT m_type FROM member WHERE m_email = #{m_email}
+	</select>
 
 
 </mapper>

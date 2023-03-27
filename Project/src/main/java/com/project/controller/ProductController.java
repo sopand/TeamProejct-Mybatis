@@ -33,49 +33,76 @@ import com.project.service.ProductService;
 
 import lombok.RequiredArgsConstructor;
 
-@Controller // 이 클래스를 컨트롤러로 설정하여 Bean으로 등록
-@RequiredArgsConstructor // 생성자 주입
+@Controller 
+@RequiredArgsConstructor 
 @RequestMapping("/products") // 기본 맵핑 주소 설정
 public class ProductController {
-	// 제품에 대한 로직
-	private final ProductService productService;
-	// chart에 대한 로직
-	private final ChartService chartService;
-	// 메인 페이지에 출력될 제품에 대한 로직
-	private final IndexService indexService;
+
+	private final ProductService productService;	// 제품에 대한 로직
+
+	private final ChartService chartService;	// chart에 대한 로직
+
+	private final IndexService indexService;	// 메인 페이지에 출력될 제품에 대한 로직
+	
 	@Value("${chart.OneWeek}")
 	private String oneWeek;
+	
 
-	/* ==================================================================== */
+	/**
+	 * 제품 생성 페이지로 이동시켜주는 Form이동 맵핑,
+	 * @param prin  = 스프링 시큐리티의 로그인 정보를 가져올 수 있는 객체로, 현재 제품을 등록하려는 사용자의 아이디값을 가져오기 위함.
+	 * @param model = View에 리턴시켜줄 데이터를 설정해주기 위한 객체,
+	 * @return = 로직들을 실행후 이동할 View의 이름, .html이 생략되어 있다.
+	 */
 	@GetMapping("") // /products GET입력시 제품 등록폼이 있는 페이지로 이동
 	public String loadProductAddForm(Principal prin, Model model) {
 		String memberEmail = prin.getName(); // 제품등록시 등록하는 사람의 아이디값을 받아오기 위함
-		model.addAttribute("memberEmail", memberEmail); // View로 등록자의 아이디를 전송
-		return "productadd"; // productadd.html로 이동
+		model.addAttribute("memberEmail", memberEmail); 
+		return "productadd"; 
 	}
-
-	@PostMapping("") // /products POST 제품에 대한 생성을 담당하는 맵핑
+	/**
+	 * 제품의 등록을 실행하기 위한 맵핑
+	 * @param productRequest = 사용자가 제품을 등록하기 위해 입력한 제품의 정보가 들어있는 객체,
+	 * @param reDirect = forward방식으로 view를 반환한다면 새로고침을 할 경우 중복되는 데이터가 입력될 위험성이 존재하기 떄문에 Redirect를 하는데, 
+	 * Redirect시 Option에 등록에 제품의 고유번호(PK)가 필요하기 때문에 그값을 View로 보내주기 위해 사용되는 객체,
+	 * @return = 위의 reDirect에서 설명한것처럼 forward 대신 Redirect로 Option생성 페이지로 View를 이동한다.
+	 * @throws Exception
+	 */
+	@PostMapping("") 
 	public String createProduct(Product productRequest, RedirectAttributes reDirect) throws Exception {
-		productService.createProduct(productRequest); // View에서 전송받은 데이터를바탕으로 제품을 등록,
-		reDirect.addAttribute("p_id", productRequest.getP_id()); // Option페이지에서 p_id를 FK로 사용하기 때문에 추가를 위해 View로
-																	// 전송(Hidden값임)
-		return "redirect:/products/options"; // option생성페이지로 Redirect = forward시 새로고침할경우 지속적으로 제품이 생성되는 에러가 발생함.
+		productService.createProduct(productRequest); 
+		reDirect.addAttribute("p_id", productRequest.getP_id()); 
+		return "redirect:/products/options"; 
 	}
+	
 
-	/* ==================================================================== */
-	@GetMapping("/{p_id}/info") // 선택한 제품의 제품번호로 그 제품에대한 수정을 위한 페이지로 이동시켜주는 페이지.
+	/**
+	 * 제품을 수정하기 위해 수정페이지로 이동시켜주는 Form 맵핑
+	 * @param p_id = 사용자가 수정할 제품의 고유번호 (PK)
+	 * @param model = View에 리턴시켜줄 데이터를 설정해주기 위한 객체,
+	 * @return = productupdate.html로 View 이동시켜준다.
+	 */
+	@GetMapping("/{p_id}/info")
 	public String loadProductUpdateForm(@PathVariable int p_id, Model model) {
-		Map<String, Object> findProductMap = productService.findProduct(p_id);// 단순하게 Product에 대한 정보가아닌 가공된 정보들과 여러
-		model.addAttribute("findProductMap", findProductMap); // 테이블이 함께 출력되어 Map 으로 여러객체를 한번에 담아서 전송 (Service로직에서 최대한
-																// 처리하고 Controller의 코드를 줄이기 위함)
+		Map<String, Object> findProductMap = productService.findProduct(p_id);	// 단순하게 Product에 대한 정보가아닌 가공된 정보들과 여러
+		model.addAttribute("findProductMap", findProductMap); 					// 테이블이 함께 출력되어 Map 으로 여러객체를 한번에 담아서 전송 (Service로직에서 최대한
+																				// 처리하고 Controller의 코드를 줄이기 위함)
 		return "productupdate";
 	}
+	
+	/**
+	 * 실제로 제품의 수정 기능을 작동시켜주는 맵핑.
+	 * @param p_id = 사용자가 수정할 제품의 고유번호 (PK)
+	 * @param model = View에 리턴시켜줄 데이터를 설정해주기 위한 객체,
+	 * @param productRequest = 제품 수정을 하기위해 작성한 데이터들이 모여있는 객체,
+	 * @return = 제품을 수정한 뒤, option의 수정 페이지로 이동하게 된다.
+	 * @throws Exception
+	 */
 
-	@PutMapping("/{p_id}/info") // 제품의 수정기능을 실행시켜주는 맵핑!
+	@PutMapping("/{p_id}/info") 
 	public String modifyProduct(@PathVariable int p_id, Model model, Product productRequest) throws Exception {
-		productService.modifyProduct(productRequest); // UpdateForm에서 Request된 데이터를 기반으로 기존의 제품에대한 정보를 수정시켜줌
-		return "redirect:/products/options/" + p_id + "/info"; // 여기도 마찬가지로 Forward시 F5로인한 지속적인 UPDATE발생을 방지하기위해
-																// Redirect
+		productService.modifyProduct(productRequest); 
+		return "redirect:/products/options/" + p_id + "/info"; 
 	}
 
 	@DeleteMapping("/{p_id}/info") // 제품 수정페이지에서 제품삭제 버튼을 클릭할 경우 발동되는 맵핑,
@@ -253,10 +280,17 @@ public class ProductController {
 		
 		return "redirect:/products/options/" + opt_pid_p_fk + "/info";
 	}
-	//Option 수정페이지에서 옵션을 삭제할 경우 사용하는 맵핑. 단일 옵션에 대한 삭제처리를 담당.
+	
+	/**
+	 * Option 수정페이지에서 옵션을 삭제할 경우 사용하는 맵핑. 단일 옵션에 대한 삭제처리를 담당.
+	 * 
+	 * opt_id : 삭제하려고 하는 옵션에대한 고유번호 PK
+	 * opt_pid_p_fk : 삭제할 옵션을 가지고 있는 제품에 대한 고유번호 Product의 PK
+	 */
 	@DeleteMapping("/options/{opt_id}/info") 
 	public String deleteOneOption(@PathVariable int opt_id, int opt_pid_p_fk) {
 		productService.deleteOneOption(opt_id); // 단일 옵션은 각각 하나가 대분류이기 때문에 opt의 고유번호만 가져와서 삭제를 진행합니다.
 		return "redirect:/products/options/" + opt_pid_p_fk + "/info";
 	}
+	
 }

@@ -41,7 +41,7 @@ mybatis:
     map-underscore-to-camel-case: true #MyBatis의 표기법인 스네이크케이스 ( 언더바"_" 를 사용해 단어의 이미를 구분)를 ex)camel_case
                                        #자바의 표기법 카멜케이스 방식으로 변환, 첫글자는 소문자로시작 > 중간글자를 대문자 ex)camelCase
 server:
-  port: 8086
+  port: 8091
 
 file:
   Upimg: C:/projectimg/    #파일의 저장,출력을 이클립스의 외부경로 ex) C드라이브에서 가져올때 MvcConfig에서 사용할 경로의 값을 미리 선언,
