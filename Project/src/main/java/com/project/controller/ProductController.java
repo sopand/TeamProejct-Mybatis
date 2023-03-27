@@ -104,14 +104,27 @@ public class ProductController {
 		productService.modifyProduct(productRequest); 
 		return "redirect:/products/options/" + p_id + "/info"; 
 	}
-
-	@DeleteMapping("/{p_id}/info") // 제품 수정페이지에서 제품삭제 버튼을 클릭할 경우 발동되는 맵핑,
+	
+	/**
+	 * 제품 수정 페이지에서 제품 삭제를 클릭 할 경우 실행되는 제품 삭제를 위한 맵핑.
+	 * @param p_id = 사용자가 삭제하려고 하는 제품의 고유 번호 (PK)
+	 * @return = 마찬가지로 제품의 생성,수정,삭제가 발생하는 맵핑은 Redirect로 View이동을 함.
+	 * @throws Exception
+	 */
+	@DeleteMapping("/{p_id}/info") 
 	public String deleteProduct(@PathVariable int p_id) throws Exception {
-		productService.deleteEvent(p_id); // 제품의 p_id( 고유번호 )를 받아와 제품에 대한 삭제처리를 진행.
-		return "redirect:/products/add/lists"; // CUD가 발생하는 맵핑에 대해서는 새로고침에 의한 에러방지를 위해 Redirect
+		productService.deleteEvent(p_id); 
+		return "redirect:/products/add/lists";
 
 	}
 
+	/**
+	 * 제품에 대한 정보를 출력해주는 상세 페이지로 이동하는 매핑.
+	 * @param p_id = 상세 페이지를 보려고 하는 제품의 고유번호
+	 * @param model = View에 리턴시켜줄 데이터를 설정해주기 위한 객체,
+	 * @param r_pnickname_m_fk = 해당 제품의 제품 명을 가져온다 ( Review 관련 데이터를 얻어오기 위함 )  < - Review 파트담당하는 팀원의 파라미터값,
+	 * @return = 제품의 상세페이지를 보여주는 View로 이동,
+	 */
 	@GetMapping("/{p_id}") // 제품에대한 정보를 출력해주는 상세페이지로 이동하는 맵핑,
 	public String findProductDetail(@PathVariable int p_id, Model model, String r_pnickname_m_fk) {
 		Map<String, Object> findProductMap = productService.findProduct(p_id); // 제품의 고유번호를 기반으로 정보를 찾아와서 Map에 담아준다. (
@@ -262,17 +275,25 @@ public class ProductController {
 		}
 		return "OneOptionAdd"; // 단일,다중옵션이 중복되는 에러를 방지하기위해 값을 View로 보내고 js에서 반대되는 옵션방식에 대한 추가View를 지워버립니다.
 	}
-
-	@GetMapping("/options/{p_id}/info") // 옵션 수정에대한 Form으로 이동시켜주는 맵핑입니다.
+	/**
+	 * 옵션 수정에대한 Form으로 이동시켜주는 맵핑입니다.
+	 * @param p_id = 옵션 수정하려는 제품의 고유변호를 가져와 Option 데이터를 찾아옵니다
+	 * @param model = View에 출력해준 데이터를 설정해주는 객체입니다.
+	 * @return = 옵션을 업데이트 하기위한 페이지로 이동시켜준다.
+	 */
+	@GetMapping("/options/{p_id}/info") // 
 	public String loadOptionEditForm(@PathVariable int p_id, Model model) {
-		//옵션 수정하려는 제품의 고유변호를 가져와 Option 데이터를 찾아옵니다
 		Map<String, Object> productFindOption = productService.findOptions(p_id);
 		model.addAttribute("p_id", p_id);
 		model.addAttribute("productFindOption", productFindOption);
-		return "optionUpdate"; // optionUpdate.html 페이지로 이동 
+		return "optionUpdate";
 	}
-
-	//Option 수정페이지에서 옵션을 삭제할경우 사용하는 맵핑입니다.다중옵션에 대한 삭제처리를 담당합니다.
+	/**
+	 * Option 수정페이지에서 옵션을 삭제할경우 사용하는 맵핑입니다.다중옵션에 대한 삭제처리를 담당합니다. 
+	 * @param opt_option1 = 다중 옵션의 경우 대분류인 1번 옵션의 정보를 가져오기 위한 객체입니다.
+	 * @param opt_pid_p_fk = 해당 제품의 고유번호를 가지고 있는 객체,
+	 * @return = 삭제 후 다시 옵션 수정페이지로 redirect
+	 */
 	@DeleteMapping("/options/{opt_option1}/info/{opt_pid_p_fk}")
 	public String deleteOption(@PathVariable String opt_option1, @PathVariable int opt_pid_p_fk) {
 		// 다중옵션의 대분류인 1번옵션 정보와 해당 제품의 고유번호를 함께 받아옵니다. ( 옵션1번에 대한 중복삭제를 방지하기 위함)
@@ -283,7 +304,6 @@ public class ProductController {
 	
 	/**
 	 * Option 수정페이지에서 옵션을 삭제할 경우 사용하는 맵핑. 단일 옵션에 대한 삭제처리를 담당.
-	 * 
 	 * opt_id : 삭제하려고 하는 옵션에대한 고유번호 PK
 	 * opt_pid_p_fk : 삭제할 옵션을 가지고 있는 제품에 대한 고유번호 Product의 PK
 	 */
