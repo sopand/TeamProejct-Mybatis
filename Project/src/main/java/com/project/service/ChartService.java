@@ -17,7 +17,15 @@ import lombok.RequiredArgsConstructor;
 public class ChartService {
 
 	private final ChartMapper chartMapper;
-
+	
+	
+	/**
+	 * Seller전용페이지인 판매와 관련된 데이터를 차트로 보여주는 서비스를 위한 로직으로 모든 차트와 관련된 데이터를 가져옵니다.
+	 * @param memberEmail  = 현재 차트페이지를 보려고 하는 사용자의 아이디 (Seller의 아이디)
+	 * @param Day = 보기위해 설정한 날짜의 범위 , Day = 1주,2주, Month =한달 , 6개월 단위로 설정이 가능하다.
+	 * @param Month
+	 * @return
+	 */
 	public Map<String, Object> AllChartList(String memberEmail, String Day, String Month) {
 		//여러 다른 객체들을 한번에 View로 보낼수 있어야 하기 때문에 Map에 담아준다.
 		Map<String, Object> chartMap= new HashMap<>();
@@ -41,10 +49,15 @@ public class ChartService {
 		return chartMap;
 	}
 
-	// product service mypage 필요
-	public List<Chart> OneWeekChart(String p_nickname_m_fk, String Day) {
+	/**
+	 * 해당 차트 데이터는 통계를 보기위한 서비스란이아닌 Seller 마이페이지에 입장시 상단에 출력되는 작은 차트를 넣기위한 로직입니다.
+	 * @param memberEmail = Seller의 로그인 아이디값
+	 * @param Day = 마이페이지에 출력되는 차트의 경우는 1주일단위만출력가능, 
+	 * @return
+	 */
+	public List<Chart> OneWeekChart(String memberEmail, String Day) {
 
-		return chartMapper.OneWeekChart(p_nickname_m_fk, Day);
+		return chartMapper.OneWeekChart(memberEmail, Day);
 	}
 
 }

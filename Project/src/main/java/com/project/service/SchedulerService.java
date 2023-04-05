@@ -21,8 +21,12 @@ public class SchedulerService { // 해당 쇼핑몰은 시간이 지나면 공�
 	private final SchedulerMapper sMapper;
 	// 스케쥴링과 관련된 DB작업을 진행해주는 Mapper클래스다.
 
-	
-	@Scheduled(cron = "*/50 * * * * *") // 크론표현식으로 발동 시간에대한 설정이 가능. 나는 50초마다 작동하게 설정
+		
+	/**
+	 * 해당 서비스로직은 저희의 쇼핑몰이 시간단위로 종료되는 서비스이기 때문에, 정산처리를 하나하나 손으로 하는것 보다는 시간단위로 자동처리가 가능하게끔 해놓는게 좋을것 같아
+	 * 사용해본 스케쥴링 서비스로직입니다. 정산 관련작업이다 보니 계산적인 부분이 다소 존재하는 코드입니다.
+	 */
+	@Scheduled(cron = "*/60 * * * * *") // 크론표현식으로 발동 시간에대한 설정이 가능. 나는 60초마다 작동하게 설정
 	public void run() {
 		List<Product> endProductList= sMapper.FindProduct(); // 공고가 종료된 제품들의 리스트
 		List<Product> endProductPriceList = new ArrayList<>(); // 공고 종료된 제품들의 구매자정산을위한 리스트

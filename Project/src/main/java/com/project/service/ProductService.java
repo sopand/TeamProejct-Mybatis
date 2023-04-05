@@ -1,6 +1,7 @@
 package com.project.service;
 
 import java.io.File;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -35,19 +36,30 @@ import lombok.RequiredArgsConstructor;
 public class ProductService {
 
 	private final ProductMapper productMapper; //Product의 DB처리를 해주는 객체,
-	private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"); // 자주 사용되는 날짜 형식을  상수로 설정해놓고 불러 사용하기위함.
+	private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"); // 반복적으로 사용하는 날짜 포맷 형식을 미리 선언해놓고 재사용하기 위함.
+	
 	@Value("${file.Upimg}") // application.yml에 등록해놓은 파일이 저장되는 폴더에대한 위치 
 	private String path;
-
-	@Transactional // 트랜잭션 처리로 하위에 INSERT들이 진행도중 오류가 생긴다면 RollBack이 된다 (에외의 종류에 따라서 안될수도 있음)
+	/**
+	 * 제품을 생성하기 위한 로직으로 제품하나가 생성될 때 Img, Discount도 생성되어야 하고, 또 제품의 판매시작 - 종료시간에 맞춰서 공고가 종료되게끔 설정하기 위해
+	 * 제품 생성로직에 여러개의 로직들을 받아서 실행시킨다. 그래야 트랜잭션 처리 시 어디 한군데에 문제가 생기면 원자성을 지킬수 있을 것 같아서 설정해놓음.
+	 * @param productRequest = 사용자가 입력한 제품에 대한 정보들이 들어있는 요청객체,
+	 * @throws Exception
+	 */
+	@Transactional 
 	public void createProduct(Product productRequest) throws Exception {
 		productMapper.AddProduct(productRequest);  // 컨트롤러로부터 넘겨받은 request데이터를 기반으로 제품에 대한 정보를 DB에 저장,
 		createDiscount(productRequest, SetEnum.ADD.getType()); // 제품에 해당하는 Discount(할인율)DB 정보를 저장
 		createImg(productRequest.getP_img(), productRequest.getP_id(), SetEnum.p_img.getType());// 제품의 상세 이미지를 저장시켜주는 로직
 		createImg(productRequest.getP_contentimg(), productRequest.getP_id(), SetEnum.p_contentimg.getType()); // 제품의 설명에 관련된 이미지를 저장해주는 로직
 		createSqlEvent(productRequest, SetEnum.ADD.getType()); // 해당 쇼핑몰은 시간에 맞춰 공고의 시작, 종료가 이뤄지기 때문에 그 시작시간,종료시간에 맞춰 DB가 변할수 있게 SQL의 이벤트 스케쥴러를 이용하는 로직.
+		
 	}
-
+	/**
+	 * 제품글의 수정을 담당하는 로직으로, 생성과 마찬가지로 해당 로직도 여러테이블이 같이 수정되어야 하기 때문에 여러 기능로직을 받아온다. 
+	 * @param productRequest = 사용자가 수정하려하는 정보가 들어있는 요청객체
+	 * @throws Exception
+	 */
 	@Transactional
 	public void modifyProduct(Product productRequest) throws Exception {
 		productMapper.UpdateProduct(productRequest); // 넘겨받은 request정보를 기반으로 DB의 기존 정보를 수정하는 로직
@@ -57,10 +69,15 @@ public class ProductService {
 		modifyImg(productRequest.getP_contentimg(), productRequest.getP_id(), SetEnum.p_contentimg.getType());
 	}
 
-	@Transactional // 할인율 생성 ,수정
+	/**
+	 * 할인율을 등록하는 기능입니다.
+	 * @param productRequest 제품등록 페이지에서 입력한 제품에 대한 모든 데이터를 가지고 있는객체,
+	 * @param Type = UPDATE와 CREATE를 구분하기 위한 값
+	 */
+	@Transactional 
 	public void createDiscount(Product productRequest, String Type) {
 		if (Type.equals(SetEnum.UPDATE.getType())) {
-			productMapper.DeleteDiscount(productRequest.getP_id());
+			productMapper.DeleteDiscount(productRequest.getP_id()); // UPDATE라면 기존의 discount 데이터를 지워버리고 다시 생성한다.
 		}
 		for (int i = 0; i < productRequest.getP_discount_count().size(); i++) {
 			Discount dis = Discount.builder().dis_count(productRequest.getP_discount_count().get(i))
@@ -69,27 +86,28 @@ public class ProductService {
 			productMapper.AddDiscount(dis);
 		}
 	}
+	
+	/**
+	 * 새로운 이미지의 추가와 기존 이미지에서 삭제된 객체들을 삭제처리해주는 생성+수정을 진행시키는 메서드입니다.
+	 * @param file = 실제 Img데이터를 가지고 있는 객체
+	 * @param p_id = 이미지의 부모가되는 제품글의 고유번호입니다
+	 * @param keyword = 수정/삭제되는 이미지가 대표이미지인지 상세정보 이미지인지를 구분하기 위한 용도
+	 * @throws Exception
+	 */
 
-	@Transactional // 이미지 생성 , 수정
+	@Transactional 
 	public void modifyImg(List<MultipartFile> file, int p_id, String keyword) throws Exception {
 		Img imgParameter = Img.builder().img_keyword(keyword).img_pid_p_fk(p_id).build();
 		List<Img> beforeImgList = productMapper.img_length(imgParameter);
 		for (int j = 0; j < file.size(); j++) {
 			if (!file.get(j).isEmpty()) {
-				String origName = file.get(j).getOriginalFilename(); // 입력한 원본 파일의 이름
-				String uuid = String.valueOf(UUID.randomUUID()); // toString 보다는 valueOf를 추천 , NPE에러 예방,
-				String extension = origName.substring(origName.lastIndexOf(".")); // 원본파일의 파일확장자
-				String savedName = uuid + extension; // 랜덤이름 + 확장자
-				File converFile = new File(path, savedName); // path = 상품 이미지 파일의 저장 경로가 들어있는 프로퍼티 설정값
-				if (!converFile.exists()) {
-					converFile.mkdirs();
-				}
-				file.get(j).transferTo(converFile); // --- 실제로 저장을 시켜주는 부분 , 해당 경로에 접근할 수 있는 권한이 없으면 에러 발생
+				String origName = file.get(j).getOriginalFilename(); 
+				String savedName=getSavedName(origName,file.get(j));
 				if (beforeImgList.size() > j) {
 					deleteImg(beforeImgList.get(j));
 					Img img = Img.builder().img_keyword(keyword).img_name(savedName).img_origname(origName)
 							.img_pid_p_fk(p_id).img_id(beforeImgList.get(j).getImg_id()).build();
-					productMapper.UpdateImg(img);
+					productMapper.UpdateImg(img);				
 				} else {
 					Img img = Img.builder().img_keyword(keyword).img_name(savedName).img_origname(origName)
 							.img_pid_p_fk(p_id).build();
@@ -99,35 +117,66 @@ public class ProductService {
 		}
 	}
 
-	@Transactional // 이미지 생성 , 수정
+	/**
+	 * 이미지의 생성을 담당하는 객체입니다.
+	 * @param file = 실제 Img 파일의 정보를 가지고있는 객체,
+	 * @param p_id = 이 이미지의 부모가 되는 제품의 고유번호
+	 * @param keyword = 이미지가 상세정보 이미지인지 , 대표이미지인지 구분하기 위한 keyword입니다.
+	 * @throws Exception
+	 */
+	@Transactional 
 	public void createImg(List<MultipartFile> file, int p_id, String keyword) throws Exception {
 		if (!CollectionUtils.isEmpty(file)) {
 			for (MultipartFile imgFile : file) {
 				String origName = imgFile.getOriginalFilename(); // 입력한 원본 파일의 이름
-				String uuid = String.valueOf(UUID.randomUUID());// 문자+숫자의 랜덤한 파일명으로 변경
-				String extension = origName.substring(origName.lastIndexOf(".")); // 원본파일의 파일확장자
-				String savedName = uuid + extension; // 랜덤이름 + 확장자
-				File converFile = new File(path, savedName); // path = 상품 이미지 파일의 저장 경로가 들어있는 프로퍼티 설정값
-				if (!converFile.exists()) {
-					converFile.mkdirs();
-				}
-				imgFile.transferTo(converFile); // --- 실제로 저장을 시켜주는 부분 , 해당 경로에 접근할 수 있는 권한이 없으면 에러 발생
+				String savedName=getSavedName(origName,imgFile);
 				Img img = Img.builder().img_keyword(keyword).img_name(savedName).img_origname(origName)
 						.img_pid_p_fk(p_id).build();
 				productMapper.AddImg(img);
 			}
 		}
 	}
-
+	
+	/**
+	 * 이미지 생성 / 수정시 사용되는 코드들은 거의 같은 방식을 중복이 진행되기 때문에 별도로 필요한 origiName을 인자로 받고 다른코드에서도 필요한 SavedName을 리턴 해준다.
+	 * @param origName   = 이미지파일의 원본파일 명
+	 * @param imgFile  = 실제 이미지 파일을 담고있는 객체
+	 * @return = 다른 코드에서 필요한 값인 SavedName값을 반환해줍니다.
+	 * @throws IllegalStateException
+	 * @throws IOException
+	 */
+	public String getSavedName(String origName,MultipartFile imgFile) throws IllegalStateException, IOException {
+		String uuid = String.valueOf(UUID.randomUUID());// 문자+숫자의 랜덤한 파일명으로 변경
+		String extension = origName.substring(origName.lastIndexOf(".")); // 원본파일의 파일확장자
+		String savedName = uuid + extension; // 랜덤이름 + 확장자
+		File converFile = new File(path, savedName); // path = 상품 이미지 파일의 저장 경로가 들어있는 프로퍼티 설정값
+		if (!converFile.exists()) {
+			converFile.mkdirs();
+		}
+		imgFile.transferTo(converFile); // --- 실제로 저장을 시켜주는 부분 , 해당 경로에 접근할 수 있는 권한이 없으면 에러 발생
+		return savedName;
+	}
+	
+	/**
+	 * 이미지 삭제도 공통적으로 여러코드에서 사용되기 때문에 별도로 분리하여 작성하여 재사용성을 높히고 반복 코드를 줄였다.
+	 * @param i = DB에 있는 Img데이터를 가지고 있는 객체,
+	 */
 	public void deleteImg(Img i) {
 		String deletePath = path + i.getImg_name();
 		File file = new File(deletePath);
 		file.delete();
 	}
+	
+	
+	/**
+	 * SQL의 이벤트 스케쥴링을 활용하기 위한 메서드로 이벤트를 생성해주는 로직입니다.
+	 * @param productRequest = 제품 등록 페이지에서 사용자가 입력한 데이터를 가지고 있는 객체
+	 * @param type = UPDATE,CREATE 구분을 하기위함
+	 */
 
 	public void createSqlEvent(Product productRequest, String type) {
 		String value = "";
-		if (type.equals(SetEnum.UPDATE.getType())) {
+		if (type.equals(SetEnum.UPDATE.getType())) {   // UPDATE라면 기존의 이벤트기록을 제거합니다.
 			value = "DROP EVENT " + productRequest.getP_id() + "_start";
 			productMapper.CreateNewEvent(value);
 			value = "DROP EVENT " + productRequest.getP_id() + "_end";
@@ -144,12 +193,21 @@ public class ProductService {
 				+ productRequest.getP_id();
 		productMapper.CreateNewEvent(value);
 	}
-
+	
+	/**
+	 * 옵션을 생성하기 위한 로직입니다.
+	 * @param optionRequest = 추가 하려는 옵션에 대한 입력 정보를 가지고 있는 객체
+	 */
 	@Transactional
 	public void createOption(Option optionRequest) {
 		productMapper.AddOption(optionRequest);
 	}
-
+	
+	/**
+	 * 제품 상세페이지에 출력해줄 데이터를 조회 / 가공해주는 로직입니다.
+	 * @param p_id = 조회하려는 제품의 고유번호
+	 * @return
+	 */
 	public Map<String, Object> findProduct(int p_id) {
 
 		Product findProduct = productMapper.FindProduct(p_id);
@@ -307,12 +365,24 @@ public class ProductService {
 	public void deleteOneOption(int opt_id) {
 		productMapper.OneOptionRemove(opt_id);
 	}
-
+	
+	
+	/**
+	 * 해당 쇼핑몰은 등록이 완벽히 완료 된후에 삭제 처리를 하면 DB삭제가 아니라 제품공고의 상태를 remove로 바꾸는 식인데
+	 * 이 로직은 제품등록 단계에서 옵션등록을 하지 않아 삭제 처리하는 로직으로, 완전한 제품이 아니기 때문에 DB데이터도 삭제 처리한다.
+	 * @param p_id
+	 */
 	@Transactional
 	public void deleteProductOptions(int p_id) {
 		productMapper.OptionRemoveProduct(p_id);
 	}
-
+	
+	
+	/**
+	 * 처음 제품을 생성하고 난 뒤 옵션 생성페이지에서 해당 제품의 옵션 등록 유무를 판단하기 위함 / 혹시나 옵션이 존재한다면 다른옵션을 입력하지 못하게 하기 위함(중분류/대분류)
+	 * @param opt_pid_p_fk = 확인하려 하는 제품의 고유번호
+	 * @return
+	 */
 	public Option hasOption(int opt_pid_p_fk) {
 		List<Option> pid_All_OptionList = productMapper.Option_List(opt_pid_p_fk);
 		if (pid_All_OptionList.size() > 0) {
@@ -321,12 +391,22 @@ public class ProductService {
 		return null;
 	}
 
-	public List<Option> findAllOptions(int p_id) {  //모든 옵션을 찾아오는 로직, 
+	/**
+	 * 해당하는 제품의 하위에있는 모든 옵션에 관련한 정보를 가져오는 로직입니다
+	 * @param p_id = 제품의 고유번호 PK
+	 * @return
+	 */
+	public List<Option> findAllOptions(int p_id) { 
 		return productMapper.Option_List(p_id);
 	}
 
-	public void modifyQuantity(int[] opt_id, int[] opt_quantity) { // SellerMypage의 재고확인창에서 재고를 수정할 경우 사용되는 로직
-		for (int i = 0; i < opt_id.length; i++) { // 넘겨받은 opt_id의 수만큼 반복을 진행하고, 해당 고유번호의 DB를 수정시켜준다.
+	/**
+	 * Seller의 마이페이지에서 재고정보를 클릭시 나오는 페이지에서 재고 수정을 하는 기능을 담당하는 로직
+	 * @param opt_id = 수정하려는 옵션의 고유번호의 배열입니다. 
+	 * @param opt_quantity = 변경 하려는 재고량의 배열
+	 */
+	public void modifyQuantity(int[] opt_id, int[] opt_quantity) { 
+		for (int i = 0; i < opt_id.length; i++) {
 			Option modifyOption = Option.builder().opt_id(opt_id[i]).opt_quantity(opt_quantity[i]).build();
 			productMapper.modifyQuantity(modifyOption);
 		}
