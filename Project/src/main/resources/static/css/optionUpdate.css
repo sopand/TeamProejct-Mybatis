@@ -192,6 +192,7 @@
 #Updateoption_btn {
 	width: 100px;
 	height: 35px;
+	color:black;
 	border: 2px solid #e2e2e2;
 	border-radius: 10px;
 }

@@ -5,7 +5,7 @@ window.onload = function() {
 function check() {
 	let length = $(".delopt").length;
 	if (length == 1) {
-		$("#Updateoption_btn").attr("disabled", true);
+		$("#Updateoption_btn").attr("disabled", true);		
 	}
 };
 $(function() {

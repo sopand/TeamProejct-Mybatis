@@ -26,6 +26,7 @@
 	align-items: center;
 	justify-content: center;
 	flex-direction: column;
+	padding-bottom:50px;
 }
 
 .productadd_form h1 {

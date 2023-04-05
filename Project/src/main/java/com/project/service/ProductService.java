@@ -97,8 +97,8 @@ public class ProductService {
 
 	@Transactional 
 	public void modifyImg(List<MultipartFile> file, int p_id, String keyword) throws Exception {
-		Img imgParameter = Img.builder().img_keyword(keyword).img_pid_p_fk(p_id).build();
-		List<Img> beforeImgList = productMapper.img_length(imgParameter);
+		Img imgParameter = Img.builder().img_keyword(keyword).img_pid_p_fk(p_id).build(); // 기존의 이미지를 찾아올때 사용할 데이터를 보내기 쉽게 Img 객체에 담음
+		List<Img> beforeImgList = productMapper.img_length(imgParameter); // 위에서 생성할 파라미터로 기존의 이미지들을 찾아옴
 		for (int j = 0; j < file.size(); j++) {
 			if (!file.get(j).isEmpty()) {
 				String origName = file.get(j).getOriginalFilename(); 
@@ -233,11 +233,25 @@ public class ProductService {
 		List<Map<String, Object>> categoryBest = productMapper.CategoryBestProduct(findProduct.getP_nickname_m_fk(),
 				findProduct.getP_category());
 		List<Map<String, Object>> sellerBest = productMapper.SellerBestProduct(findProduct.getP_nickname_m_fk());
-		Map<String, Object> map = Map.of("categoryBest", categoryBest, "sellerBest", sellerBest, "nowDiscount",
-				nowDiscount, "nextDiscountSell", nextDiscountSell, "discountPrice", discountPrice, "p_recruitdate",
-				p_recruitdate, "p_duedate", p_duedate, "findProduct", findProduct);
+		Map<String, Object> map = Map.of(
+				"categoryBest", categoryBest,
+				"sellerBest", sellerBest,
+				"nowDiscount",nowDiscount,
+				"nextDiscountSell", nextDiscountSell,
+				"discountPrice", discountPrice,
+				"p_recruitdate", p_recruitdate, 
+				"p_duedate", p_duedate,
+				"findProduct", findProduct
+				);
 		return map;
 	}
+	
+	/**
+	 * 상세 페이지의 옵션에서 대분류가 변경될때 하위의 옵션을 찾아와주는 기능로직입니다.
+	 * @param opt_option1 = 변경한 대분류 옵션의 값
+	 * @param p_id = 이 옵션을 가지고 있는 제품의 고유번호
+	 * @return
+	 */
 
 	public List<Option> findOptionTwo(String opt_option1, int p_id) {
 		List<Option> option_list = productMapper.Option_List(p_id);
@@ -249,18 +263,25 @@ public class ProductService {
 		}
 		return FindOption;
 	}
-
+	
+	/**
+	 * 판매자의 Mypage의 데이터를 출력해주는 기능입니다.
+	 * @param p_nickname_m_fk = 사용자(판매자)의 아이디값
+	 * @param params = 페이징처리의 기본 설정값을 가지고 있는 페이징 객체
+	 * @param keyword = 찾아올 값들에 대한 구분을 위한 값
+	 * @return
+	 */
 	public PagingResponse<Product> findSellerProducts(String p_nickname_m_fk, SearchDto params, String keyword) {
-		int elementCount = 0;
+		int elementCount = 0;  // 페이징 처리할 객체의 총 갯수를 카운트
 		Map<String, Object> parameterMap = new HashMap<>();
 		List<Product> list = new ArrayList<>();
 		if (params.getSearching() != null) {
-			elementCount = productMapper.SearchSellerCount(p_nickname_m_fk, params.getSearching(), keyword);
-			parameterMap.put("search", params.getSearching());
+			elementCount = productMapper.SearchSellerCount(p_nickname_m_fk, params.getSearching(), keyword); // 마이페이지에서 검색으로 데이터를 찾을 경우의 카운트			 
+			parameterMap.put("search", params.getSearching());  
 		} else {
-			elementCount = productMapper.WriterProductlistCount(p_nickname_m_fk, keyword);
+			elementCount = productMapper.WriterProductlistCount(p_nickname_m_fk, keyword); //일반적인 마이페이지 접근시의 카운트
 		}
-		if (elementCount < 1) {
+		if (elementCount < 1) {   // 페이징 처리할 데이터의 존재 유무를 체크 없다면 Empty리스트를 반환한다.
 			return new PagingResponse<>(Collections.emptyList(), null);
 		}
 
@@ -270,14 +291,22 @@ public class ProductService {
 		parameterMap.put("limitstart", params.getPagination().getLimitStart());
 		parameterMap.put("recordsize", params.getRecordSize());
 		parameterMap.put("keyword", keyword);
-
-		if (params.getSearching() != null) {
+		if (params.getSearching() != null) {  // 마이페이지에서 검색으로 데이터를 찾을 경우
 			list = productMapper.SearchSeller(parameterMap);
 		} else {
 			list = productMapper.WriterProductlist(parameterMap);
 		}
 		return new PagingResponse<>(list, pagination);
 	}
+	
+	/**
+	 * 판매자의 상품을 구매한 구매자 리스트를 보여주는 로직
+	 * @param p_nickname_m_fk = 해당 판매자의 아이디
+	 * @param params = 페이징 처리를 위한 기본설정값을 가지고 있는 객체
+	 * @param keyword = 찾아올 값들에대한 구분을 위한 값
+	 * @return
+	 */
+	
 
 	public PagingResponse<Order> findProductBuyers(String p_nickname_m_fk, SearchDto params, String keyword) {
 		int elementCount = 0;
@@ -301,7 +330,11 @@ public class ProductService {
 		List<Order> list = productMapper.BuyProduct(parameterMap);
 		return new PagingResponse<>(list, pagination);
 	}
-
+	
+	/**
+	 * SQL의 스케줄링 이벤트를 삭제하는 로직입니다
+	 * @param p_id = 스케줄링을 삭제할 제품의 고유번호입니다.
+	 */
 	@Transactional
 	public void deleteEvent(int p_id) {
 		String value = "";
@@ -322,7 +355,12 @@ public class ProductService {
 		productMapper.removeProduct(p_id);
 
 	}
-
+	
+	/**
+	 * 제품에 해당하는 옵션을 찾아오는 로직, 옵션이 단일옵션이라면 별도의 추가 작업이없고 다중옵션이라면 opt1만 뽑아서 보낸다( View에서 반복문을 작성할때 편하게 하기 위함 )
+	 * @param p_id = 옵션을 찾아올 제품의 고유번호
+	 * @return
+	 */
 	public Map<String, Object> findOptions(int p_id) {
 		List<Option> optionList = productMapper.Option_List(p_id);
 		List<String> newList = new ArrayList<>();
@@ -337,6 +375,12 @@ public class ProductService {
 		map.put("optionList", optionList);
 		return map;
 	}
+	
+	/**
+	 * 판매자의 마이페이지, 판매자의 구매한사람 목록 등에 출력되는 판매자의 총 판매금액, 판매갯수 등의 출력을 위한 로직
+	 * @param p_nickname_m_fk = 판매자의 아이디값
+	 * @return
+	 */
 
 	public Map<String, Object> findSellPrices(String p_nickname_m_fk) { // 총 판매액 계산
 		List<Map<String, Object>> allSell = productMapper.Sell_chart(p_nickname_m_fk);
@@ -348,19 +392,28 @@ public class ProductService {
 			totalSell += Integer.parseInt(map.get("p_sell").toString());
 		}
 		Map<String, Object> create_map = new HashMap<>();
-		create_map.put("sellCount", allSell.size());
-		create_map.put("totalSell", totalSell);
-		create_map.put("sellMoney", sellMoney);
+		create_map.put("sellCount", allSell.size()); // 판매완료처리된 공고의 수
+		create_map.put("totalSell", totalSell); // 판매완료 처리된 제품의 총 판매 갯수
+		create_map.put("sellMoney", sellMoney); // 총 판매 금액
 
 		return create_map;
 	}
-
+	
+	/**
+	 * 다중 옵션에 대한 제거기능을 가지는 로직
+	 * @param opt_option1 = 삭제하려는 다중 옵션의 대분류
+	 * @param opt_pid_p_fk = 삭제 하려는 옵션의 제품 고유번호
+	 */
 	@Transactional
 	public void deleteOption(String opt_option1, int opt_pid_p_fk) {
 		Option opt = Option.builder().opt_option1(opt_option1).opt_pid_p_fk(opt_pid_p_fk).build();
 		productMapper.OptionRemove(opt);
-	}
-
+	}   
+	
+	/**
+	 * 단일 옵션인 옵션에 대한 제거기능을 가지는 로직
+	 * @param opt_id = 단일옵션의 고유번호 (PK)
+	 */
 	@Transactional
 	public void deleteOneOption(int opt_id) {
 		productMapper.OneOptionRemove(opt_id);
@@ -370,7 +423,7 @@ public class ProductService {
 	/**
 	 * 해당 쇼핑몰은 등록이 완벽히 완료 된후에 삭제 처리를 하면 DB삭제가 아니라 제품공고의 상태를 remove로 바꾸는 식인데
 	 * 이 로직은 제품등록 단계에서 옵션등록을 하지 않아 삭제 처리하는 로직으로, 완전한 제품이 아니기 때문에 DB데이터도 삭제 처리한다.
-	 * @param p_id
+	 * @param p_id = 삭제처리하려는 제품의 고유번호
 	 */
 	@Transactional
 	public void deleteProductOptions(int p_id) {

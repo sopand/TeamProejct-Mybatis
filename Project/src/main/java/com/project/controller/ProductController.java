@@ -339,11 +339,12 @@ public class ProductController {
 
 	/**
 	 * Option 수정페이지에서 옵션을 삭제할 경우 사용하는 맵핑. 단일 옵션에 대한 삭제처리를 담당. opt_id : 삭제하려고 하는
+	 * 단일 옵션의 경우는 하나하나의 옵션이 다 고유번호를 가지고 있기 때문에 옵션의 고유 번호를 가져와 삭제 처리를 한다.
 	 * 옵션에대한 고유번호 PK opt_pid_p_fk : 삭제할 옵션을 가지고 있는 제품에 대한 고유번호 Product의 PK
 	 */
 	@DeleteMapping("/options/{opt_id}/info")
 	public String deleteOneOption(@PathVariable int opt_id, int opt_pid_p_fk) {
-		productService.deleteOneOption(opt_id); // 단일 옵션은 각각 하나가 대분류이기 때문에 opt의 고유번호만 가져와서 삭제를 진행합니다.
+		productService.deleteOneOption(opt_id);
 		return "redirect:/products/options/" + opt_pid_p_fk + "/info";
 	}
 
