@@ -35,5 +35,16 @@ public class Product {
 	private List<MultipartFile> p_contentimg; // request 용
 	private	List<Integer> p_discount_quan; // request 용
 	private List<Integer> p_discount_count; // request 용
+	
+	public void sellerEndCal(int endPriceParam,int sellParam) {
+		this.p_endprice=endPriceParam; // 해당 상품에 대한 판매종료 가격을 DB에 저장하기 위한 값
+		this.p_price=(endPriceParam - (endPriceParam / 100 * 5)) * sellParam; //이부분은 수수료로 5%를 제외하고 나머지 판매 금액에대한 정산을 위한 계산입니다.
+		this.p_sell=sellParam;		 // 총 판매량을 DB에 저장하기 위한 값
+	}
+	
+	public void buyerEndCal(int endPriceParam,int priceParam,int sellParam) {
+		this.p_sell=sellParam;
+		this.p_endprice=(priceParam - endPriceParam);
+	}
 
 }

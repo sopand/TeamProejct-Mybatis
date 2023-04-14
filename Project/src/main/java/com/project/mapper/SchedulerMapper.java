@@ -12,7 +12,7 @@ import com.project.model.Product;
 public interface SchedulerMapper {
 	public void EndPriceProduct(int p_endprice);
 
-	public void EndPriceMember(@Param("p_endprice") int p_endprice,@Param("p_id")int p_id, @Param("m_id")int m_id,@Param("p_sell") int p_sell,@Param("p_price")int p_price);
+	public void EndPriceMember(@Param("p_endprice")int p_endprice,@Param("p_sell")int p_sell,@Param("p_id")int p_id, @Param("m_id")int m_id,@Param("p_price")int p_price);
 	public void EndPriceSeller(Product p);
 
 	public List<Product> FindProduct();

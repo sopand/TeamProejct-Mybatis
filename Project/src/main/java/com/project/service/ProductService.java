@@ -460,7 +460,7 @@ public class ProductService {
 	 */
 	public void modifyQuantity(int[] opt_id, int[] opt_quantity) { 
 		for (int i = 0; i < opt_id.length; i++) {
-			Option modifyOption = Option.builder().opt_id(opt_id[i]).opt_quantity(opt_quantity[i]).build();
+			Option modifyOption = Option.builder().opt_id(opt_id[i]).opt_quantity(opt_quantity[i]).build(); //변경할 내용들을 Option객체에 담아서 한번에 보낸다.
 			productMapper.modifyQuantity(modifyOption);
 		}
 

@@ -50,8 +50,12 @@
 	</update>
 
 	<update id="EndPriceMember" parameterType="int">
-		UPDATE member AS m,product AS p SET m.m_cash=m.m_cash+#{p_endprice},m.m_temp=m.m_temp-#{p_price},
-		p.p_chk='endprice' WHERE m.m_id=#{m_id} AND p.p_id=#{p_id}
+		UPDATE member AS m,product AS p SET m.m_cash=m.m_cash+#{p_endprice},m.m_temp=m.m_temp-#{p_price}
+		<if test="p_sell!=0">
+			,p.p_chk='endprice'
+		</if>
+		
+		 WHERE m.m_id=#{m_id} AND p.p_id=#{p_id}
 	</update>
 
 
