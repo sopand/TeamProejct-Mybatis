@@ -15,9 +15,9 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class SchedulerService { // 해당 쇼핑몰은 시간이 지나면 공고들의 판매가 시작되고 종료되기 때문에 그에대한 정산처리를 좀더 쉽게 하기위해서
-								// 스프링의 스케쥴링을 이용하여 60초마다 DB에서 공고가 종료된 상품에 대해서 고객,판매자들의 정산을 처리합니다.
-								// 판매자 = 판매금액 정산, 구매자 = 판매 종료(판매 성공)회원 DB의 캐쉬에 저장된 값에서 차감
+public class SchedulerService {
+								
+								
 	private final SchedulerMapper sMapper;
 
 	
@@ -32,8 +32,10 @@ public class SchedulerService { // 해당 쇼핑몰은 시간이 지나면 공�
 	}
 	
 	/**
+	 * 
 	 * 해당 서비스로직은 저희의 쇼핑몰이 시간단위로 종료되는 서비스이기 때문에, 정산처리를 하나하나 손으로 하는것 보다는 시간단위로 자동처리가
 	 * 가능하게끔 해놓는게 좋을것 같아 사용해본 스케쥴링 서비스로직입니다. 정산 관련작업이다 보니 계산적인 부분이 다소 존재하는 코드입니다.
+	 * 판매자 = 판매금액 정산, 구매자 = 판매 종료(판매 성공)회원 DB의 캐쉬에 저장된 값에서 차감
 	 */
 	@Scheduled(cron = "*/60 * * * * *") 																// 크론표현식으로 발동 시간에대한 설정이 가능. 나는 60초마다 작동하게 설정
 	public void run() {
