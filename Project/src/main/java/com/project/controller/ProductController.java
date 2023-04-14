@@ -140,6 +140,7 @@ public class ProductController {
 																				// Controller단의 코드가 길어져 Map으로 선택 )
 
 		// 이 부분은 Review담당하는팀원의 코드입니다. ( 간단하게 주석처리로 어떤 기능인지만 작성 )
+
 		int reviewCount = indexService.reviewct(r_pnickname_m_fk); // 제품의 제품명을 기반으로 해당 제품의 점수, 리뷰 갯수를 가져오는 로직입니다.
 		double reviewStar = indexService.reviewStar(r_pnickname_m_fk);
 		reviewStar = Math.round(((reviewStar / reviewCount) * 10) / 10.0); // 가져온 점수를 갯수를 기반으로 나눠서 평점을 만드는 로직
@@ -248,12 +249,13 @@ public class ProductController {
 	@DeleteMapping("/options") // Option생성페이지에서 Option을 생성하지 않고 페이지 이동 or 새로고침 or 등록완료처리를 하려고 할 경우 경고문을 출력합니다.
 	public String deleteProductOptionCheck(int opt_pid_p_fk) {
 		Option productOptionCheck = productService.hasOption(opt_pid_p_fk); // 제품의 고유번호로 옵션의 존재유무를 체크합니다.
+
 		if (productOptionCheck == null) { // null이라면 옵션이 존재하지 않는다는 뜻으로 삭제처리를 진행하게됩니다.
 			productService.deleteProductOptions(opt_pid_p_fk);
 			return "옵션이 존재하지 않아 해당 제품은 삭제 처리되었습니다.";
-		} else { // null이 아니라면 옵션이 1개라도 존재한다는 뜻으로 옵션이 저장완료 및 제품의 추가가 종료되게 됩니다.
-			return "옵션 저장 및 제품 추가 완료";
 		}
+		return "옵션 저장 및 제품 추가 완료";
+
 	}
 
 	/**
@@ -280,8 +282,7 @@ public class ProductController {
 	@ResponseBody
 	@PostMapping("/options")
 	public String createOption(Option optionRequest, int opt_pid_p_fk) {
-		if (optionRequest.getOpt_opt1_list() == null) { // 하위옵션이 존재하지 않는 단일옵션인지 하위옵션이 존재하는 방식인지에따라 다른 값이 들어가기 때문에 1번옵션의
-														// 유무를 체크하기 위한 if문입니다.
+		if (optionRequest.getOpt_opt1_list() == null) { // 하위옵션이 존재하지 않는 단일옵션인지 하위옵션이 존재하는 방식인지에따라 다른 값이 들어가기 때문에 1번옵션의유무를 체크하기 위한 if문입니다.
 														// 단일옵션일 경우에는 opt1가 여러개 (List)로 존재하기 때문에 null이 아니고 하위옵션이 존재하면
 														// opt1 하나에 여러개의 opt2를 가지고 있기때문에 List가 아닌 String객체로 받아옵니다.
 			for (int i = 0; i < optionRequest.getOpt_opt2_list().size(); i++) {
@@ -290,20 +291,21 @@ public class ProductController {
 					Option option = Option.builder().opt_pid_p_fk(opt_pid_p_fk) // 옵션이 등록될 제품의 고유번호
 							.opt_option1(optionRequest.getOpt_option1()) // 다중옵션에 대한 1번옵션의 값
 							.opt_option2(optionRequest.getOpt_opt2_list().get(i)) // 다중옵션의 하위가될 2번옵션의 값
-							.opt_quantity(optionRequest.getOpt_quantity_list().get(i)).build();// 이 옵션에대한 수량
-					productService.createOption(option);// 옵션 등록을위한 서비스로직
+							.opt_quantity(optionRequest.getOpt_quantity_list().get(i)).build(); // 이 옵션에대한 수량
+					productService.createOption(option); // 옵션 등록을위한 서비스로직
 				}
 			}
 			return "AllOptionAdd"; // 단일,다중 옵션이 중복되는 에러를 방지하기위해 어떤 옵션을 등록했는지 View로 보내주고 이 값을 기반으로 JS에서 단일 옵션에대한
 									// 추가View를 지워버립니다.
-		} else {
-			for (int i = 0; i < optionRequest.getOpt_opt1_list().size(); i++) { // 단일옵션일경우 실행,단일은 옵션2가 없이 옵션1만 여러개 존재.
-				Option option = Option.builder().opt_pid_p_fk(opt_pid_p_fk) // 옵션에 대한 제품의 고유번호
-						.opt_option1(optionRequest.getOpt_opt1_list().get(i)) // 옵션1의 값
-						.opt_quantity(optionRequest.getOpt_quantity_list().get(i)).build(); // 옵션에대한 제품수량
-				productService.createOption(option); // 제품등록을위한 서비스로직
-			}
 		}
+
+		for (int i = 0; i < optionRequest.getOpt_opt1_list().size(); i++) { // 단일옵션일경우 실행,단일은 옵션2가 없이 옵션1만 여러개 존재.
+			Option option = Option.builder().opt_pid_p_fk(opt_pid_p_fk) // 옵션에 대한 제품의 고유번호
+					.opt_option1(optionRequest.getOpt_opt1_list().get(i)) // 옵션1의 값
+					.opt_quantity(optionRequest.getOpt_quantity_list().get(i)).build(); // 옵션에대한 제품수량
+			productService.createOption(option); // 제품등록을위한 서비스로직
+		}
+
 		return "OneOptionAdd"; // 단일,다중옵션이 중복되는 에러를 방지하기위해 값을 View로 보내고 js에서 반대되는 옵션방식에 대한 추가View를 지워버립니다.
 	}
 
@@ -338,9 +340,9 @@ public class ProductController {
 	}
 
 	/**
-	 * Option 수정페이지에서 옵션을 삭제할 경우 사용하는 맵핑. 단일 옵션에 대한 삭제처리를 담당. opt_id : 삭제하려고 하는
-	 * 단일 옵션의 경우는 하나하나의 옵션이 다 고유번호를 가지고 있기 때문에 옵션의 고유 번호를 가져와 삭제 처리를 한다.
-	 * 옵션에대한 고유번호 PK opt_pid_p_fk : 삭제할 옵션을 가지고 있는 제품에 대한 고유번호 Product의 PK
+	 * Option 수정페이지에서 옵션을 삭제할 경우 사용하는 맵핑. 단일 옵션에 대한 삭제처리를 담당. opt_id : 삭제하려고 하는 단일
+	 * 옵션의 경우는 하나하나의 옵션이 다 고유번호를 가지고 있기 때문에 옵션의 고유 번호를 가져와 삭제 처리를 한다. 옵션에대한 고유번호 PK
+	 * opt_pid_p_fk : 삭제할 옵션을 가지고 있는 제품에 대한 고유번호 Product의 PK
 	 */
 	@DeleteMapping("/options/{opt_id}/info")
 	public String deleteOneOption(@PathVariable int opt_id, int opt_pid_p_fk) {

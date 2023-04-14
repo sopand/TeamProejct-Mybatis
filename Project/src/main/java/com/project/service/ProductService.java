@@ -31,32 +31,45 @@ import com.project.model.SetEnum;
 
 import lombok.RequiredArgsConstructor;
 
-@Service 
+@Service
 @RequiredArgsConstructor
 public class ProductService {
 
-	private final ProductMapper productMapper; //Product의 DB처리를 해주는 객체,
-	private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"); // 반복적으로 사용하는 날짜 포맷 형식을 미리 선언해놓고 재사용하기 위함.
-	
-	@Value("${file.Upimg}") // application.yml에 등록해놓은 파일이 저장되는 폴더에대한 위치 
+	private final ProductMapper productMapper; // Product의 DB처리를 해주는 객체,
+	private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"); // 반복적으로 사용하는 날짜 포맷
+																									// 형식을 미리 선언해놓고
+																									// 재사용하기 위함.
+
+	@Value("${file.Upimg}") // application.yml에 등록해놓은 파일이 저장되는 폴더에대한 위치
 	private String path;
+
 	/**
-	 * 제품을 생성하기 위한 로직으로 제품하나가 생성될 때 Img, Discount도 생성되어야 하고, 또 제품의 판매시작 - 종료시간에 맞춰서 공고가 종료되게끔 설정하기 위해
-	 * 제품 생성로직에 여러개의 로직들을 받아서 실행시킨다. 그래야 트랜잭션 처리 시 어디 한군데에 문제가 생기면 원자성을 지킬수 있을 것 같아서 설정해놓음.
+	 * 제품을 생성하기 위한 로직으로 제품하나가 생성될 때 Img, Discount도 생성되어야 하고, 또 제품의 판매시작 - 종료시간에 맞춰서
+	 * 공고가 종료되게끔 설정하기 위해 제품 생성로직에 여러개의 로직들을 받아서 실행시킨다. 그래야 트랜잭션 처리 시 어디 한군데에 문제가 생기면
+	 * 원자성을 지킬수 있을 것 같아서 설정해놓음.
+	 * 
 	 * @param productRequest = 사용자가 입력한 제품에 대한 정보들이 들어있는 요청객체,
 	 * @throws Exception
 	 */
-	@Transactional 
+	@Transactional
 	public void createProduct(Product productRequest) throws Exception {
-		productMapper.AddProduct(productRequest);  // 컨트롤러로부터 넘겨받은 request데이터를 기반으로 제품에 대한 정보를 DB에 저장,
+		productMapper.AddProduct(productRequest); // 컨트롤러로부터 넘겨받은 request데이터를 기반으로 제품에 대한 정보를 DB에 저장,
 		createDiscount(productRequest, SetEnum.ADD.getType()); // 제품에 해당하는 Discount(할인율)DB 정보를 저장
 		createImg(productRequest.getP_img(), productRequest.getP_id(), SetEnum.p_img.getType());// 제품의 상세 이미지를 저장시켜주는 로직
-		createImg(productRequest.getP_contentimg(), productRequest.getP_id(), SetEnum.p_contentimg.getType()); // 제품의 설명에 관련된 이미지를 저장해주는 로직
-		createSqlEvent(productRequest, SetEnum.ADD.getType()); // 해당 쇼핑몰은 시간에 맞춰 공고의 시작, 종료가 이뤄지기 때문에 그 시작시간,종료시간에 맞춰 DB가 변할수 있게 SQL의 이벤트 스케쥴러를 이용하는 로직.
-		
+		createImg(productRequest.getP_contentimg(), productRequest.getP_id(), SetEnum.p_contentimg.getType()); // 제품의
+																												// 설명에
+																												// 관련된
+																												// 이미지를
+																												// 저장해주는
+																												// 로직
+		createSqlEvent(productRequest, SetEnum.ADD.getType()); // 해당 쇼핑몰은 시간에 맞춰 공고의 시작, 종료가 이뤄지기 때문에 그 시작시간,종료시간에 맞춰
+																// DB가 변할수 있게 SQL의 이벤트 스케쥴러를 이용하는 로직.
+
 	}
+
 	/**
-	 * 제품글의 수정을 담당하는 로직으로, 생성과 마찬가지로 해당 로직도 여러테이블이 같이 수정되어야 하기 때문에 여러 기능로직을 받아온다. 
+	 * 제품글의 수정을 담당하는 로직으로, 생성과 마찬가지로 해당 로직도 여러테이블이 같이 수정되어야 하기 때문에 여러 기능로직을 받아온다.
+	 * 
 	 * @param productRequest = 사용자가 수정하려하는 정보가 들어있는 요청객체
 	 * @throws Exception
 	 */
@@ -65,16 +78,18 @@ public class ProductService {
 		productMapper.UpdateProduct(productRequest); // 넘겨받은 request정보를 기반으로 DB의 기존 정보를 수정하는 로직
 		createDiscount(productRequest, SetEnum.UPDATE.getType()); // Discount를 수정해주는 로직
 		createSqlEvent(productRequest, SetEnum.UPDATE.getType()); // SQL의정보가 바뀌었는지 확인하고 삭제 or 유지 or 생성진행
-		modifyImg(productRequest.getP_img(), productRequest.getP_id(), SetEnum.p_img.getType()); // 이미지들의 변동에 따라 수정을 진행해준다.
+		modifyImg(productRequest.getP_img(), productRequest.getP_id(), SetEnum.p_img.getType()); // 이미지들의 변동에 따라 수정을
+																									// 진행해준다.
 		modifyImg(productRequest.getP_contentimg(), productRequest.getP_id(), SetEnum.p_contentimg.getType());
 	}
 
 	/**
 	 * 할인율을 등록하는 기능입니다.
+	 * 
 	 * @param productRequest 제품등록 페이지에서 입력한 제품에 대한 모든 데이터를 가지고 있는객체,
-	 * @param Type = UPDATE와 CREATE를 구분하기 위한 값
+	 * @param Type           = UPDATE와 CREATE를 구분하기 위한 값
 	 */
-	@Transactional 
+	@Transactional
 	public void createDiscount(Product productRequest, String Type) {
 		if (Type.equals(SetEnum.UPDATE.getType())) {
 			productMapper.DeleteDiscount(productRequest.getP_id()); // UPDATE라면 기존의 discount 데이터를 지워버리고 다시 생성한다.
@@ -86,66 +101,73 @@ public class ProductService {
 			productMapper.AddDiscount(dis);
 		}
 	}
-	
+
 	/**
 	 * 새로운 이미지의 추가와 기존 이미지에서 삭제된 객체들을 삭제처리해주는 생성+수정을 진행시키는 메서드입니다.
-	 * @param file = 실제 Img데이터를 가지고 있는 객체
-	 * @param p_id = 이미지의 부모가되는 제품글의 고유번호입니다
+	 * 
+	 * @param file    = 실제 Img데이터를 가지고 있는 객체
+	 * @param p_id    = 이미지의 부모가되는 제품글의 고유번호입니다
 	 * @param keyword = 수정/삭제되는 이미지가 대표이미지인지 상세정보 이미지인지를 구분하기 위한 용도
 	 * @throws Exception
 	 */
 
-	@Transactional 
+	@Transactional
 	public void modifyImg(List<MultipartFile> file, int p_id, String keyword) throws Exception {
-		Img imgParameter = Img.builder().img_keyword(keyword).img_pid_p_fk(p_id).build(); // 기존의 이미지를 찾아올때 사용할 데이터를 보내기 쉽게 Img 객체에 담음
+		Img imgParameter = Img.builder().img_keyword(keyword).img_pid_p_fk(p_id).build(); // 기존의 이미지를 찾아올때 사용할 데이터를 보내기
+																							// 쉽게 Img 객체에 담음
 		List<Img> beforeImgList = productMapper.img_length(imgParameter); // 위에서 생성할 파라미터로 기존의 이미지들을 찾아옴
 		for (int j = 0; j < file.size(); j++) {
-			if (!file.get(j).isEmpty()) {
-				String origName = file.get(j).getOriginalFilename(); 
-				String savedName=getSavedName(origName,file.get(j));
-				if (beforeImgList.size() > j) {
-					deleteImg(beforeImgList.get(j));
-					Img img = Img.builder().img_keyword(keyword).img_name(savedName).img_origname(origName)
-							.img_pid_p_fk(p_id).img_id(beforeImgList.get(j).getImg_id()).build();
-					productMapper.UpdateImg(img);				
-				} else {
-					Img img = Img.builder().img_keyword(keyword).img_name(savedName).img_origname(origName)
-							.img_pid_p_fk(p_id).build();
-					productMapper.AddImg(img);
-				}
+			if (file.get(j).isEmpty()) {
+				continue;
 			}
+			String origName = file.get(j).getOriginalFilename();
+			String savedName = getSavedImgName(origName, file.get(j));
+			if (beforeImgList.size() > j) {
+				deleteImg(beforeImgList.get(j));
+				Img img = Img.builder().img_keyword(keyword).img_name(savedName).img_origname(origName)
+						.img_pid_p_fk(p_id).img_id(beforeImgList.get(j).getImg_id()).build();
+				productMapper.UpdateImg(img);
+				continue;
+			}
+			Img img = Img.builder().img_keyword(keyword).img_name(savedName).img_origname(origName).img_pid_p_fk(p_id)
+					.build();
+			productMapper.AddImg(img);
+
 		}
 	}
 
 	/**
 	 * 이미지의 생성을 담당하는 객체입니다.
-	 * @param file = 실제 Img 파일의 정보를 가지고있는 객체,
-	 * @param p_id = 이 이미지의 부모가 되는 제품의 고유번호
+	 * 
+	 * @param file    = 실제 Img 파일의 정보를 가지고있는 객체,
+	 * @param p_id    = 이 이미지의 부모가 되는 제품의 고유번호
 	 * @param keyword = 이미지가 상세정보 이미지인지 , 대표이미지인지 구분하기 위한 keyword입니다.
 	 * @throws Exception
 	 */
-	@Transactional 
+	@Transactional
 	public void createImg(List<MultipartFile> file, int p_id, String keyword) throws Exception {
 		if (!CollectionUtils.isEmpty(file)) {
 			for (MultipartFile imgFile : file) {
 				String origName = imgFile.getOriginalFilename(); // 입력한 원본 파일의 이름
-				String savedName=getSavedName(origName,imgFile);
+				String savedName = getSavedImgName(origName, imgFile);
 				Img img = Img.builder().img_keyword(keyword).img_name(savedName).img_origname(origName)
 						.img_pid_p_fk(p_id).build();
 				productMapper.AddImg(img);
 			}
 		}
 	}
-	
+
 	/**
-	 * 이미지 생성 / 수정시 사용되는 코드들은 거의 같은 방식을 중복이 진행되기 때문에 별도로 필요한 origiName을 인자로 받고 다른코드에서도 필요한 SavedName을 리턴 해준다.
-	 * @param origName   = 이미지파일의 원본파일 명
+	 * 이미지 생성 / 수정시 사용되는 코드들은 거의 같은 방식을 중복이 진행되기 때문에 별도로 필요한 origiName을 인자로 받고
+	 * 다른코드에서도 필요한 SavedName을 리턴 해준다.
+	 * 
+	 * @param origName = 이미지파일의 원본파일 명
 	 * @param imgFile  = 실제 이미지 파일을 담고있는 객체
 	 * @return = 다른 코드에서 필요한 값인 SavedName값을 반환해줍니다.
 	 * @throws IllegalStateException
 	 * @throws IOException
 	 */
-	public String getSavedName(String origName,MultipartFile imgFile) throws IllegalStateException, IOException {
+	public String getSavedImgName(String origName, MultipartFile imgFile) throws IllegalStateException, IOException {
 		String uuid = String.valueOf(UUID.randomUUID());// 문자+숫자의 랜덤한 파일명으로 변경
 		String extension = origName.substring(origName.lastIndexOf(".")); // 원본파일의 파일확장자
 		String savedName = uuid + extension; // 랜덤이름 + 확장자
@@ -156,9 +178,10 @@ public class ProductService {
 		imgFile.transferTo(converFile); // --- 실제로 저장을 시켜주는 부분 , 해당 경로에 접근할 수 있는 권한이 없으면 에러 발생
 		return savedName;
 	}
-	
+
 	/**
 	 * 이미지 삭제도 공통적으로 여러코드에서 사용되기 때문에 별도로 분리하여 작성하여 재사용성을 높히고 반복 코드를 줄였다.
+	 * 
 	 * @param i = DB에 있는 Img데이터를 가지고 있는 객체,
 	 */
 	public void deleteImg(Img i) {
@@ -166,17 +189,17 @@ public class ProductService {
 		File file = new File(deletePath);
 		file.delete();
 	}
-	
-	
+
 	/**
 	 * SQL의 이벤트 스케쥴링을 활용하기 위한 메서드로 이벤트를 생성해주는 로직입니다.
+	 * 
 	 * @param productRequest = 제품 등록 페이지에서 사용자가 입력한 데이터를 가지고 있는 객체
-	 * @param type = UPDATE,CREATE 구분을 하기위함
+	 * @param type           = UPDATE,CREATE 구분을 하기위함
 	 */
 
 	public void createSqlEvent(Product productRequest, String type) {
 		String value = "";
-		if (type.equals(SetEnum.UPDATE.getType())) {   // UPDATE라면 기존의 이벤트기록을 제거합니다.
+		if (type.equals(SetEnum.UPDATE.getType())) { // UPDATE라면 기존의 이벤트기록을 제거합니다.
 			value = "DROP EVENT " + productRequest.getP_id() + "_start";
 			productMapper.CreateNewEvent(value);
 			value = "DROP EVENT " + productRequest.getP_id() + "_end";
@@ -193,18 +216,20 @@ public class ProductService {
 				+ productRequest.getP_id();
 		productMapper.CreateNewEvent(value);
 	}
-	
+
 	/**
 	 * 옵션을 생성하기 위한 로직입니다.
+	 * 
 	 * @param optionRequest = 추가 하려는 옵션에 대한 입력 정보를 가지고 있는 객체
 	 */
 	@Transactional
 	public void createOption(Option optionRequest) {
 		productMapper.AddOption(optionRequest);
 	}
-	
+
 	/**
 	 * 제품 상세페이지에 출력해줄 데이터를 조회 / 가공해주는 로직입니다.
+	 * 
 	 * @param p_id = 조회하려는 제품의 고유번호
 	 * @return
 	 */
@@ -233,23 +258,17 @@ public class ProductService {
 		List<Map<String, Object>> categoryBest = productMapper.CategoryBestProduct(findProduct.getP_nickname_m_fk(),
 				findProduct.getP_category());
 		List<Map<String, Object>> sellerBest = productMapper.SellerBestProduct(findProduct.getP_nickname_m_fk());
-		Map<String, Object> map = Map.of(
-				"categoryBest", categoryBest,
-				"sellerBest", sellerBest,
-				"nowDiscount",nowDiscount,
-				"nextDiscountSell", nextDiscountSell,
-				"discountPrice", discountPrice,
-				"p_recruitdate", p_recruitdate, 
-				"p_duedate", p_duedate,
-				"findProduct", findProduct
-				);
+		Map<String, Object> map = Map.of("categoryBest", categoryBest, "sellerBest", sellerBest, "nowDiscount",
+				nowDiscount, "nextDiscountSell", nextDiscountSell, "discountPrice", discountPrice, "p_recruitdate",
+				p_recruitdate, "p_duedate", p_duedate, "findProduct", findProduct);
 		return map;
 	}
-	
+
 	/**
 	 * 상세 페이지의 옵션에서 대분류가 변경될때 하위의 옵션을 찾아와주는 기능로직입니다.
+	 * 
 	 * @param opt_option1 = 변경한 대분류 옵션의 값
-	 * @param p_id = 이 옵션을 가지고 있는 제품의 고유번호
+	 * @param p_id        = 이 옵션을 가지고 있는 제품의 고유번호
 	 * @return
 	 */
 
@@ -263,25 +282,31 @@ public class ProductService {
 		}
 		return FindOption;
 	}
-	
+
 	/**
 	 * 판매자의 Mypage의 데이터를 출력해주는 기능입니다.
+	 * 
 	 * @param p_nickname_m_fk = 사용자(판매자)의 아이디값
-	 * @param params = 페이징처리의 기본 설정값을 가지고 있는 페이징 객체
-	 * @param keyword = 찾아올 값들에 대한 구분을 위한 값
+	 * @param params          = 페이징처리의 기본 설정값을 가지고 있는 페이징 객체
+	 * @param keyword         = 찾아올 값들에 대한 구분을 위한 값
 	 * @return
 	 */
 	public PagingResponse<Product> findSellerProducts(String p_nickname_m_fk, SearchDto params, String keyword) {
-		int elementCount = 0;  // 페이징 처리할 객체의 총 갯수를 카운트
+		int elementCount = 0; // 페이징 처리할 객체의 총 갯수를 카운트
 		Map<String, Object> parameterMap = new HashMap<>();
 		List<Product> list = new ArrayList<>();
 		if (params.getSearching() != null) {
-			elementCount = productMapper.SearchSellerCount(p_nickname_m_fk, params.getSearching(), keyword); // 마이페이지에서 검색으로 데이터를 찾을 경우의 카운트			 
-			parameterMap.put("search", params.getSearching());  
+			elementCount = productMapper.SearchSellerCount(p_nickname_m_fk, params.getSearching(), keyword); // 마이페이지에서
+																												// 검색으로
+																												// 데이터를
+																												// 찾을
+																												// 경우의
+																												// 카운트
+			parameterMap.put("search", params.getSearching());
 		} else {
-			elementCount = productMapper.WriterProductlistCount(p_nickname_m_fk, keyword); //일반적인 마이페이지 접근시의 카운트
+			elementCount = productMapper.WriterProductlistCount(p_nickname_m_fk, keyword); // 일반적인 마이페이지 접근시의 카운트
 		}
-		if (elementCount < 1) {   // 페이징 처리할 데이터의 존재 유무를 체크 없다면 Empty리스트를 반환한다.
+		if (elementCount < 1) { // 페이징 처리할 데이터의 존재 유무를 체크 없다면 Empty리스트를 반환한다.
 			return new PagingResponse<>(Collections.emptyList(), null);
 		}
 
@@ -291,22 +316,22 @@ public class ProductService {
 		parameterMap.put("limitstart", params.getPagination().getLimitStart());
 		parameterMap.put("recordsize", params.getRecordSize());
 		parameterMap.put("keyword", keyword);
-		if (params.getSearching() != null) {  // 마이페이지에서 검색으로 데이터를 찾을 경우
+		if (params.getSearching() != null) { // 마이페이지에서 검색으로 데이터를 찾을 경우
 			list = productMapper.SearchSeller(parameterMap);
 		} else {
 			list = productMapper.WriterProductlist(parameterMap);
 		}
 		return new PagingResponse<>(list, pagination);
 	}
-	
+
 	/**
 	 * 판매자의 상품을 구매한 구매자 리스트를 보여주는 로직
+	 * 
 	 * @param p_nickname_m_fk = 해당 판매자의 아이디
-	 * @param params = 페이징 처리를 위한 기본설정값을 가지고 있는 객체
-	 * @param keyword = 찾아올 값들에대한 구분을 위한 값
+	 * @param params          = 페이징 처리를 위한 기본설정값을 가지고 있는 객체
+	 * @param keyword         = 찾아올 값들에대한 구분을 위한 값
 	 * @return
 	 */
-	
 
 	public PagingResponse<Order> findProductBuyers(String p_nickname_m_fk, SearchDto params, String keyword) {
 		int elementCount = 0;
@@ -330,9 +355,10 @@ public class ProductService {
 		List<Order> list = productMapper.BuyProduct(parameterMap);
 		return new PagingResponse<>(list, pagination);
 	}
-	
+
 	/**
 	 * SQL의 스케줄링 이벤트를 삭제하는 로직입니다
+	 * 
 	 * @param p_id = 스케줄링을 삭제할 제품의 고유번호입니다.
 	 */
 	@Transactional
@@ -355,9 +381,11 @@ public class ProductService {
 		productMapper.removeProduct(p_id);
 
 	}
-	
+
 	/**
-	 * 제품에 해당하는 옵션을 찾아오는 로직, 옵션이 단일옵션이라면 별도의 추가 작업이없고 다중옵션이라면 opt1만 뽑아서 보낸다( View에서 반복문을 작성할때 편하게 하기 위함 )
+	 * 제품에 해당하는 옵션을 찾아오는 로직, 옵션이 단일옵션이라면 별도의 추가 작업이없고 다중옵션이라면 opt1만 뽑아서 보낸다( View에서
+	 * 반복문을 작성할때 편하게 하기 위함 )
+	 * 
 	 * @param p_id = 옵션을 찾아올 제품의 고유번호
 	 * @return
 	 */
@@ -375,9 +403,10 @@ public class ProductService {
 		map.put("optionList", optionList);
 		return map;
 	}
-	
+
 	/**
 	 * 판매자의 마이페이지, 판매자의 구매한사람 목록 등에 출력되는 판매자의 총 판매금액, 판매갯수 등의 출력을 위한 로직
+	 * 
 	 * @param p_nickname_m_fk = 판매자의 아이디값
 	 * @return
 	 */
@@ -398,41 +427,44 @@ public class ProductService {
 
 		return create_map;
 	}
-	
+
 	/**
 	 * 다중 옵션에 대한 제거기능을 가지는 로직
-	 * @param opt_option1 = 삭제하려는 다중 옵션의 대분류
+	 * 
+	 * @param opt_option1  = 삭제하려는 다중 옵션의 대분류
 	 * @param opt_pid_p_fk = 삭제 하려는 옵션의 제품 고유번호
 	 */
 	@Transactional
 	public void deleteOption(String opt_option1, int opt_pid_p_fk) {
 		Option opt = Option.builder().opt_option1(opt_option1).opt_pid_p_fk(opt_pid_p_fk).build();
 		productMapper.OptionRemove(opt);
-	}   
-	
+	}
+
 	/**
 	 * 단일 옵션인 옵션에 대한 제거기능을 가지는 로직
+	 * 
 	 * @param opt_id = 단일옵션의 고유번호 (PK)
 	 */
 	@Transactional
 	public void deleteOneOption(int opt_id) {
 		productMapper.OneOptionRemove(opt_id);
 	}
-	
-	
+
 	/**
-	 * 해당 쇼핑몰은 등록이 완벽히 완료 된후에 삭제 처리를 하면 DB삭제가 아니라 제품공고의 상태를 remove로 바꾸는 식인데
-	 * 이 로직은 제품등록 단계에서 옵션등록을 하지 않아 삭제 처리하는 로직으로, 완전한 제품이 아니기 때문에 DB데이터도 삭제 처리한다.
+	 * 해당 쇼핑몰은 등록이 완벽히 완료 된후에 삭제 처리를 하면 DB삭제가 아니라 제품공고의 상태를 remove로 바꾸는 식인데 이 로직은
+	 * 제품등록 단계에서 옵션등록을 하지 않아 삭제 처리하는 로직으로, 완전한 제품이 아니기 때문에 DB데이터도 삭제 처리한다.
+	 * 
 	 * @param p_id = 삭제처리하려는 제품의 고유번호
 	 */
 	@Transactional
 	public void deleteProductOptions(int p_id) {
 		productMapper.OptionRemoveProduct(p_id);
 	}
-	
-	
+
 	/**
-	 * 처음 제품을 생성하고 난 뒤 옵션 생성페이지에서 해당 제품의 옵션 등록 유무를 판단하기 위함 / 혹시나 옵션이 존재한다면 다른옵션을 입력하지 못하게 하기 위함(중분류/대분류)
+	 * 처음 제품을 생성하고 난 뒤 옵션 생성페이지에서 해당 제품의 옵션 등록 유무를 판단하기 위함 / 혹시나 옵션이 존재한다면 다른옵션을
+	 * 입력하지 못하게 하기 위함(중분류/대분류)
+	 * 
 	 * @param opt_pid_p_fk = 확인하려 하는 제품의 고유번호
 	 * @return
 	 */
@@ -446,21 +478,26 @@ public class ProductService {
 
 	/**
 	 * 해당하는 제품의 하위에있는 모든 옵션에 관련한 정보를 가져오는 로직입니다
+	 * 
 	 * @param p_id = 제품의 고유번호 PK
 	 * @return
 	 */
-	public List<Option> findAllOptions(int p_id) { 
+	public List<Option> findAllOptions(int p_id) {
 		return productMapper.Option_List(p_id);
 	}
 
 	/**
 	 * Seller의 마이페이지에서 재고정보를 클릭시 나오는 페이지에서 재고 수정을 하는 기능을 담당하는 로직
-	 * @param opt_id = 수정하려는 옵션의 고유번호의 배열입니다. 
+	 * 
+	 * @param opt_id       = 수정하려는 옵션의 고유번호의 배열입니다.
 	 * @param opt_quantity = 변경 하려는 재고량의 배열
 	 */
-	public void modifyQuantity(int[] opt_id, int[] opt_quantity) { 
+	public void modifyQuantity(int[] opt_id, int[] opt_quantity) {
 		for (int i = 0; i < opt_id.length; i++) {
-			Option modifyOption = Option.builder().opt_id(opt_id[i]).opt_quantity(opt_quantity[i]).build(); //변경할 내용들을 Option객체에 담아서 한번에 보낸다.
+			Option modifyOption = Option.builder().opt_id(opt_id[i]).opt_quantity(opt_quantity[i]).build(); // 변경할 내용들을
+																											// Option객체에
+																											// 담아서 한번에
+																											// 보낸다.
 			productMapper.modifyQuantity(modifyOption);
 		}
 
